@@ -18,12 +18,20 @@ jobs:
         run: |
           brew install ldid dpkg || true
 
+      # FIXED STEP: Rebuilt using text joining so the chat window cannot hide URLs
       - name: Deploy Isolated Theos Compiler
         run: |
-          git clone --recursive https://github.com ~/theos
+          DOMAIN="github.com"
+          
+          CLONE_PATH="https://${DOMAIN}/theos/theos.git"
+          git clone --recursive "$CLONE_PATH" ~/theos
+          
           echo "THEOS=~/theos" >> $GITHUB_ENV
           mkdir -p ~/theos/sdks
-          curl -LO https://github.com
+          
+          SDK_PATH="https://${DOMAIN}/theos/sdks/raw/master/iPhoneOS16.5.sdk.tar.xz"
+          curl -LO "$SDK_PATH"
+          
           tar -xf iPhoneOS16.5.sdk.tar.xz -C ~/theos/sdks/
           rm iPhoneOS16.5.sdk.tar.xz
 
@@ -34,7 +42,9 @@ jobs:
 
       - name: Deploy Azule App Patching Tool
         run: |
-          git clone https://github.com ~/Azule
+          DOMAIN="github.com"
+          PATCH_PATH="https://${DOMAIN}/mpelteshki/Azule.git"
+          git clone "$PATCH_PATH" ~/Azule
           sudo ln -sf "$HOME/Azule/azule" /usr/local/bin/azule
 
       - name: Download Target IPA Binary
