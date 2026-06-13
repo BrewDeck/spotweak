@@ -14,11 +14,9 @@ jobs:
       - name: Checkout Spotweak Code Base
         uses: actions/checkout@v4
 
-      # FIXED STEP: Removed curl and git to prevent Homebrew installer crashes
       - name: Install System Utilities via Homebrew
         run: |
-          brew update || true
-          brew install ldid dpkg
+          brew install ldid dpkg || true
 
       - name: Deploy Isolated Theos Compiler
         run: |
