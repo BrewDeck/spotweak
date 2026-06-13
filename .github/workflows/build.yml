@@ -1,0 +1,56 @@
+name: Spotweak Complete Automated Pipeline
+on:
+  workflow_dispatch:
+    inputs:
+      ipa_url:
+        description: 'Direct HTTP Link to Decrypted Spotify .ipa file'
+        required: true
+        type: string
+
+jobs:
+  build_package:
+    runs-on: macos-14
+    steps:
+      - name: Checkout Spotweak Code Base
+        uses: actions/checkout@v4
+
+      - name: Install System Utilities via Homebrew
+        run: |
+          brew update
+          brew install ldid dpkg curl git
+
+      - name: Deploy Isolated Theos Compiler
+        run: |
+          git clone --recursive https://github.com ~/theos
+          echo "THEOS=~/theos" >> $GITHUB_ENV
+          mkdir -p ~/theos/sdks
+          curl -LO https://github.com
+          tar -xf iPhoneOS16.5.sdk.tar.xz -C ~/theos/sdks/
+          rm iPhoneOS16.5.sdk.tar.xz
+
+      - name: Build Tweak Injection Binary
+        run: |
+          export THEOS=$HOME/theos
+          make clean package SIDELOADING=1 FINALPACKAGE=1
+
+      - name: Deploy Azule App Patching Tool
+        run: |
+          git clone https://github.com ~/Azule
+          sudo ln -sf "$HOME/Azule/azule" /usr/local/bin/azule
+
+      - name: Download Target IPA Binary
+        run: |
+          curl -L "${{ github.event.inputs.ipa_url }}" -o pristine_target.ipa
+
+      - name: Merge Code Tweak and Application App
+        run: |
+          DYLIB_PATH=$(find .theos/obj -name "*.dylib" | head -n 1)
+          mkdir -p output_payload
+          azule -i pristine_target.ipa -f "$DYLIB_PATH" -o output_payload/
+          mv output_payload/*.ipa output_payload/Spotweak_Sideload_Ready.ipa
+
+      - name: Export Completed Application Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spotweak-Injected-Spotify
+          path: output_payload/Spotweak_Sideload_Ready.ipa
